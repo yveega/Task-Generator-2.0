@@ -1,11 +1,34 @@
 from Visualiser import *
 from Formatter import reformat
 from Render import text_to_image
-import square_equation
+import sys
 from random import randint as r
 import os
 
-drawer = Drawer(square_equation.get_params_list())
+generator = None
+
+
+def set_generator(subject, theme, gen_name):
+    sys.path.insert(0, os.getcwd() + "\\Subjects\\" + subject + "\\" + theme)
+    exec("import " + gen_name)
+    global generator
+    generator = eval(gen_name)
+
+
+# subject = input("Название предмета: ")
+# theme = input("Название темы: ")
+# gen_name = input("Файл генератора: ")
+
+subject = "Алгебра"
+theme = "Уравнения"
+gen_name = "square_equation"
+
+set_generator(subject, theme, gen_name)
+if generator is None:
+    params_list = "text(Не выбран, 01, генератор)"
+else:
+    params_list = generator.get_params_list()
+drawer = Drawer(params_list)
 
 running = True
 while running:  # ОЦП (Основной Цикл Программы)
@@ -15,17 +38,19 @@ while running:  # ОЦП (Основной Цикл Программы)
     if res == 'stop':
         running = False
     elif (res is not None) and (not r(0, 1)):
-        square_equation.set_params(res)
+        generator.set_params(res["params"])
         tasks = []
         answers = []
-        for i in range(5):
-            task, ans = square_equation.generate()
+        for i in range(res["versions"] * res["tasks"]):
+            task, ans = generator.generate()
             print(task)
             print(ans)
             tasks.append(task)
             answers.append(ans)
-        text = reformat(tasks, answers, font_size=30)
+        text = reformat(tasks, answers, font_size=30, ans_after_each=False, k_versions=res["versions"])
+        print(text)
         file_names = text_to_image(text, directory="pages")
+        print(file_names)
         f = open('pages.txt', 'w')
         s = ""
         for name in file_names:

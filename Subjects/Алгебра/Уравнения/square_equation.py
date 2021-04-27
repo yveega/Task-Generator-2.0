@@ -50,14 +50,14 @@ def generate():
     num_2 //= math.gcd(num_2, den_2)
     den_2 //= math.gcd(num_2, den_2)
     # форматируем ответ
-    ans_1 = "t(" + str(num_1) + ")" if den_1 == 1 else "t(" + str(num_1) + " / " + str(den_1) + ")"
+    ans_1 = "t(" + str(abs(num_1)) + ")" if den_1 == 1 else "|(t(" + str(abs(num_1)) + "))(t(" + str(den_1) + "))"
     if num_1 < 0:
-        ans_1 = "- " + ans_1[1:]
-    ans_2 = "t(" + str(num_2) + ")" if den_2 == 1 else "t(" + str(num_2) + " / " + str(den_2) + ")"
+        ans_1 = "c(t(- ))(" + ans_1 + ")"
+    ans_2 = "t(" + str(abs(num_2)) + ")" if den_2 == 1 else "|(t(" + str(abs(num_2)) + "))(t(" + str(den_2) + "))"
     if num_2 < 0:
-        ans_2 = "- " + ans_2[1:]
+        ans_2 = "c(t(- ))(" + ans_2 + ")"
     if ans_1 != ans_2:
-        answer = "C8C(t(x))(i(1)())(t( = ))({})(t(, x))(i(2)())(t( = ))({})".format(ans_1, ans_2)
+        answer = "C8C(t(x))(i()(t(1)))(t( = ))({})(t(, x))(i()(t(2)))(t( = ))({})".format(ans_1, ans_2)
     else:
         answer = "c(t(x = ))(" + ans_1 + ")"
 
@@ -70,11 +70,11 @@ def generate():
         k_const = num_1 * num_2
         # форматируем выражение
         if k_square == 1:
-            equation = "c(t(x))(i()(2))"
+            equation = "c(t(x))(i(t(2))())"
         elif k_square == -1:
-            equation = "c(t(- x))(i()(2))"
+            equation = "c(t(- x))(i(t(2))())"
         else:
-            equation = "c(t(" + str(k_square) + " x))(i()(2))"
+            equation = "c(t(" + str(k_square) + " x))(i(t(2))())"
 
         if k_simple == 1:
             equation = "c(" + equation + ")(t( + x))"
@@ -103,12 +103,12 @@ def generate():
 # print(generate())
 #
 # print(generate())
-set_params("02 : 3, 03 : 50")
-tasks = []
-answers = []
-for _ in range(6):
-    t, a = generate()
-    tasks.append(t)
-    answers.append(a)
-print(tasks)
-print(answers)
+# set_params("02 : 3, 03 : 50")
+# tasks = []
+# answers = []
+# for _ in range(6):
+#     t, a = generate()
+#     tasks.append(t)
+#     answers.append(a)
+# print(tasks)
+# print(answers)

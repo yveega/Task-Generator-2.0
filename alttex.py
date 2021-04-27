@@ -40,9 +40,24 @@ def combine(left, right):  # "Склеить" изображения (совме
     scr.set_colorkey([255] * 3)
     return scr
 
+def draw_figure(scr, rect, width, flipped=False):
+    radius = rect[2] // 2
+    img = pygame.Surface(rect[2:])
+    img.fill([255] * 3)
+    pygame.draw.line(img, [0] * 3, [radius, radius - 2], [radius, rect[3] // 2 - radius + 1], width=width)
+    pygame.draw.line(img, [0] * 3, [radius, rect[3] // 2 + radius], [radius, rect[3] - 0 - radius], width=width)
+    pygame.draw.arc(img, [0] * 3, [radius - width // 2 + 1, 0, radius * 2, radius * 2], radians(90), radians(180), width=width)
+    pygame.draw.arc(img, [0] * 3, [radius - width // 2 + 1, rect[3] - 1 - radius * 2, radius * 2, radius * 2], radians(180), radians(270), width=width)
+    pygame.draw.arc(img, [0] * 3, [-radius + width // 2 + 0, rect[3] // 2, radius * 2, radius * 2], radians(0), radians(90), width=width)
+    pygame.draw.arc(img, [0] * 3, [-radius + 0 + width // 2, rect[3] // 2 - radius * 2, radius * 2, radius * 2], radians(270), radians(360), width=width)
+    if flipped:
+        img = pygame.transform.flip(img, True, False)
+    img.set_colorkey([255] * 3)
+    scr.blit(img, rect[:2])
+
 def render_math(text, fsize=15):  # Рендер сктроки с математикой. text - строка, содержащая математику, fsize - размер шрифта
     try:
-        fnt = pygame.font.SysFont('Calibri', fsize)
+        fnt = pygame.font.SysFont('serif', fsize, italic=True)
         width = 1 + fsize // 20
         if text == '':  # Костыль 1: Если на вход подаётся пустая строка, то возвращается surface нулевого размера
             return pygame.Surface([0, 0])
@@ -179,7 +194,7 @@ def render_math(text, fsize=15):  # Рендер сктроки с матема�
                     break
             num = int(num)
             txt = get_args(text, 1, 2 + len(str(num)))[0].replace('\\', '')
-            font = pygame.font.SysFont('Calibri', num)
+            font = pygame.font.SysFont('serif', num, italic=True)
             render = font.render(txt, True, [0] * 3)
             scr = pygame.Surface([render.get_width(), render.get_height()])
             scr.fill([255] * 3)
@@ -304,16 +319,17 @@ def render_math(text, fsize=15):  # Рендер сктроки с матема�
                 sy += renders[-1].get_height() + 2
                 sx = max(sx, renders[-1].get_width())
             N = 3
-            scr = pygame.Surface([sx + fsize * 2 // N, sy + 2])
+            scr = pygame.Surface([sx + fsize // N + width, sy + 2])
             scr.fill([255] * 3)
             for i in range(len(args)):
-                scr.blit(renders[i], [fsize * 2 // N, positions[i] + 4])
-            pygame.draw.line(scr, [0] * 3, [fsize // N, fsize // N - 2], [fsize // N, scr.get_height() // 2 - fsize // N + 1], width=width)
-            pygame.draw.line(scr, [0] * 3, [fsize // N, scr.get_height() // 2 + fsize // N], [fsize // N, scr.get_height() - 0 - fsize // N], width=width)
-            pygame.draw.arc(scr, [0] * 3, [fsize // N - width // 2 + 2, 0, fsize * 2 // N, fsize * 2 // N], radians(90), radians(180), width=width)
-            pygame.draw.arc(scr, [0] * 3, [fsize // N - width // 2 + 2, scr.get_height() - 1 - fsize * 2 // N, fsize * 2 // N, fsize * 2 // N], radians(180), radians(270), width=width)
-            pygame.draw.arc(scr, [0] * 3, [-fsize // N + width // 2 + 0, scr.get_height() // 2, fsize * 2 // N, fsize * 2 // N], radians(0), radians(90), width=width)
-            pygame.draw.arc(scr, [0] * 3, [-fsize // N + 0 + width // 2, scr.get_height() // 2 - fsize * 2 // N, fsize * 2 // N, fsize * 2 // N], radians(270), radians(360), width=width)
+                scr.blit(renders[i], [fsize // N + width, positions[i] + 4])
+            #pygame.draw.line(scr, [0] * 3, [fsize // N, fsize // N - 2], [fsize // N, scr.get_height() // 2 - fsize // N + 1], width=width)
+            #pygame.draw.line(scr, [0] * 3, [fsize // N, scr.get_height() // 2 + fsize // N], [fsize // N, scr.get_height() - 0 - fsize // N], width=width)
+            #pygame.draw.arc(scr, [0] * 3, [fsize // N - width // 2 + 2, 0, fsize * 2 // N, fsize * 2 // N], radians(90), radians(180), width=width)
+            #pygame.draw.arc(scr, [0] * 3, [fsize // N - width // 2 + 2, scr.get_height() - 1 - fsize * 2 // N, fsize * 2 // N, fsize * 2 // N], radians(180), radians(270), width=width)
+            #pygame.draw.arc(scr, [0] * 3, [-fsize // N + width // 2 + 0, scr.get_height() // 2, fsize * 2 // N, fsize * 2 // N], radians(0), radians(90), width=width)
+            #pygame.draw.arc(scr, [0] * 3, [-fsize // N + 0 + width // 2, scr.get_height() // 2 - fsize * 2 // N, fsize * 2 // N, fsize * 2 // N], radians(270), radians(360), width=width)
+            draw_figure(scr, [0, 0, min(2 * fsize // N, (num - 1) * fsize // N), scr.get_height()], width)
             scr.set_colorkey([255] * 3)
             return scr
         elif text.find('C') == 0:  # Комбинация ряда объектов
@@ -440,24 +456,14 @@ def render_math(text, fsize=15):  # Рендер сктроки с матема�
                     scr.blit(renders[i][j], [width * 5 + j * sx + (sx - renders[i][j].get_width()) // 2, width * 2 + i * sy + (sy - renders[i][j].get_height()) // 2])
 
             N = 3
-            pygame.draw.line(scr, [0] * 3, [fsize // N, fsize // N - 2], [fsize // N, scr.get_height() // 2 - fsize // N + 1], width=width)
-            pygame.draw.line(scr, [0] * 3, [fsize // N, scr.get_height() // 2 + fsize // N], [fsize // N, scr.get_height() - 0 - fsize // N], width=width)
-            pygame.draw.arc(scr, [0] * 3, [fsize // N - width // 2 + 2, 0, fsize * 2 // N, fsize * 2 // N], radians(90), radians(180), width=width)
-            pygame.draw.arc(scr, [0] * 3, [fsize // N - width // 2 + 2, scr.get_height() - 1 - fsize * 2 // N, fsize * 2 // N, fsize * 2 // N], radians(180), radians(270), width=width)
-            pygame.draw.arc(scr, [0] * 3, [-fsize // N + width // 2, scr.get_height() // 2, fsize * 2 // N, fsize * 2 // N], radians(0), radians(90), width=width)
-            pygame.draw.arc(scr, [0] * 3, [-fsize // N + 1 + width // 2, scr.get_height() // 2 - fsize * 2 // N, fsize * 2 // N, fsize * 2 // N], radians(270), radians(360), width=width)
-
-            pygame.draw.line(scr, [0] * 3, [sx * numx + width * 10 - fsize // N, fsize // N - 2], [sx * numx + width * 10 - fsize // N, scr.get_height() // 2 - fsize // N + 1], width=width)
-            pygame.draw.line(scr, [0] * 3, [sx * numx + width * 10 - fsize // N, scr.get_height() // 2 + fsize // N], [sx * numx + width * 10 - fsize // N, scr.get_height() - 0 - fsize // N], width=width)
-            pygame.draw.arc(scr, [0] * 3, [sx * numx + width * 10 - 1 * (fsize // N - width // 2) - fsize * 2 // N, 0, fsize * 2 // N, fsize * 2 // N], radians(0), radians(90), width=width)
-            pygame.draw.arc(scr, [0] * 3, [sx * numx + width * 10 - 1 * (fsize // N - width // 2) - fsize * 2 // N, scr.get_height() - 1 - fsize * 2 // N, fsize * 2 // N, fsize * 2 // N], radians(270), radians(360), width=width)
-            pygame.draw.arc(scr, [0] * 3, [sx * numx + width * 10 - 1 * (-fsize // N + width // 2) - fsize * 2 // N + 1, scr.get_height() // 2, fsize * 2 // N, fsize * 2 // N], radians(90), radians(180), width=width)
-            pygame.draw.arc(scr, [0] * 3, [sx * numx + width * 10 - 1 * (-fsize // N + 1 + width // 2) - fsize * 2 // N + 2, scr.get_height() // 2 - fsize * 2 // N, fsize * 2 // N, fsize * 2 // N], radians(180), radians(270), width=width)
+            draw_figure(scr, [0, 0, fsize // N, scr.get_height()], width)
+            draw_figure(scr, [scr.get_width() - fsize // N, 0, fsize // N, scr.get_height()], width, flipped=True)
             scr.set_colorkey([255] * 3)
             return scr
         return pygame.Surface([0] * 2)
-    except:  # В случае ошибки напечатать подстроку, в которой возникла ошибка и вернуть красный квадрат нужного размера.
+    except Exception as E:  # В случае ошибки напечатать подстроку, в которой возникла ошибка и вернуть красный квадрат нужного размера.
         print('ERROR with:', text)
+        print(E)
         scr = pygame.Surface([fsize] * 2)
         scr.fill([255, 0, 0])
         return scr
