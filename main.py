@@ -2,9 +2,11 @@ from Visualiser import *
 from Formatter import reformat
 from Render import text_to_image
 import sys
-from random import randint as r
+import pygame
 import os
 
+FPS = 30
+clock = pygame.time.Clock()
 generator = None
 
 
@@ -37,7 +39,7 @@ while running:  # ОЦП (Основной Цикл Программы)
     # Обработка вывода интерфейса
     if res == 'stop':
         running = False
-    elif (res is not None) and (not r(0, 1)):
+    elif res is not None:
         generator.set_params(res["params"])
         tasks = []
         answers = []
@@ -62,6 +64,7 @@ while running:  # ОЦП (Основной Цикл Программы)
         # C:/Users/ПК/Desktop/проги/проект9.2.2/test_img/latex_A43.png'''
         print(s, file=f)
         f.close()
+    clock.tick(FPS)
 
 # Выход из программы
 # pygame.quit()

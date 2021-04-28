@@ -29,7 +29,7 @@ def sign(x):
 
 
 def imload(name, pos=(0, 0)):
-    img = pygame.image.load('Images/' + name)
+    img = pygame.image.load('Resource/Images/' + name)
     img.set_colorkey(img.get_at(pos))
     return img
 
@@ -184,7 +184,7 @@ class Drawer:
         pygame.display.set_caption('GRIT-Z')  # Generator of Randomized Instances of Tasks - Zero edition
         self.reset(params)
         self.tm = time.monotonic()
-        self.bg = pygame.image.load('Images/ground.jpg')
+        self.bg = pygame.image.load('Resource/Images/ground.jpg')
         self.flag = imload('flag.bmp')
         self.cross = imload('cross.bmp')
         self.no_pages_label = pygame.font.SysFont('Calibri', 18)
@@ -192,6 +192,8 @@ class Drawer:
         self.current_page = 0
         self.total_pages = 0
         self.scrolls = 0
+        self.page_scale = 1
+        self.page_topleft = (0, 0)
         self.backward_button = pygame_gui.elements.ui_button.UIButton(
             manager=self.manager, relative_rect=pygame.Rect((650, 567), (25, 25)), text='<', visible=0)
         self.pages_num_input = pygame_gui.elements.ui_text_entry_line.UITextEntryLine(
@@ -223,12 +225,10 @@ class Drawer:
             pages_images = [pygame.image.load(i.strip()) for i in f]
             f.close()
             self.total_pages = len(pages_images)
-            for i in range(self.total_pages):
-                # pages_images[i] = pygame.transform.scale(pages_images[i], (int(540 / 2 ** 0.5), 540))  # меняем размер
-                pages_images[i] = pygame.transform.smoothscale(pages_images[i], (int(540 / 2 ** 0.5), 540))
-            pages_rects = [pages_images[i].get_rect(topleft=(590, 20)) for i in
-                           range(self.total_pages)]  # прямоугольник картинки
-            self.scr.blit(pages_images[self.current_page], pages_rects[self.current_page])
+            page_scaled = pygame.transform.smoothscale(pages_images[self.current_page],
+                                                       (int(self.page_scale * 540 / 2 ** 0.5),
+                                                        int(self.page_scale * 540)))
+            self.scr.blit(page_scaled, (590, 20), (*self.page_topleft, int(540 / 2 ** 0.5), 540))
             self.pages_num_input.visible = 1
             self.forward_button.visible = 1
             self.backward_button.visible = 1
@@ -241,8 +241,16 @@ class Drawer:
             self.backward_button.visible = 0
             self.scr.blit(self.no_pages_label, (670, 300))
 
+    def page_topleft_upd(self, rel):
+        self.page_topleft = (self.page_topleft[0] - rel[0], self.page_topleft[1] - rel[1])
+        self.page_topleft = (int(max(0, min((self.page_scale - 1) * 540 / 2 ** 0.5 + 1, self.page_topleft[0]))),
+                             int(max(0, min((self.page_scale - 1) * 540 + 1, self.page_topleft[1]))))
+
+    def page_scale_upd(self, val):
+        self.page_scale = max(1, min(8, self.page_scale + val))
+
     def reset(self, params):  # Пересоздаёт меню с другими настройками (ввод)
-        self.manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'Styles/theme.json')
+        self.manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'Resource/Styles/theme.json')
         self.desc_textbox = pygame_gui.elements.ui_text_box.UITextBox(relative_rect=pygame.Rect((20, 20), (550, 200)),
                                                                       html_text=self.description, manager=self.manager)
         self.uis = decode_uis(params, self.manager)
@@ -316,10 +324,25 @@ class Drawer:
                 if event.key == pygame.K_RIGHT:
                     self.pages_input_upd(self.current_page + 1 + 1)
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:
-                    self.scrolls -= 1
-                if event.button == 5:
-                    self.scrolls += 1
+                ctrl = pygame.key.get_mods() & pygame.KMOD_CTRL
+                if ctrl:
+                    scale = self.page_scale
+                    if event.button == 4:
+                        self.page_scale_upd(0.5)
+                    if event.button == 5:
+                        self.page_scale_upd(-0.5)
+                    x, y = self.page_topleft[0] + event.pos[0] - 590, self.page_topleft[1] + event.pos[1] - 20
+                    self.page_topleft_upd(
+                        (x - x / scale * self.page_scale, y - y / scale * self.page_scale))
+                else:
+                    if event.button == 4:
+                        self.scrolls -= 1
+                    if event.button == 5:
+                        self.scrolls += 1
+            if event.type == pygame.MOUSEMOTION:
+                if event.buttons[0] == 1:
+                    if pygame.Rect((590, 20), (int(540 / 2 ** 0.5), 540)).collidepoint(event.pos):
+                        self.page_topleft_upd(event.rel)
             if event.type == pygame.USEREVENT:
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.generate_button:

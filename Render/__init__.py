@@ -98,6 +98,6 @@ def text_to_image(text, page_size=[1240, 1754], content_size = [1220, 1734], dir
                 page_scr.blit(scr, [px, global_pos])
             global_pos += scr.get_height() + int(font_size * page_size[0] / 4200)
         PAGE.blit(page_scr, [(page_size[0] - content_size[0]) // 2, (page_size[1] - content_size[1]) // 2])
-        names.append('/page' + str(pnum) + '.bmp')
+        names.append('page' + str(pnum) + '.bmp')
         pygame.image.save(PAGE, directory + '/page' + str(pnum) + '.bmp')  # Сохранение страницы в файл        names.append('page' + str(pnum) + '.bmp')  # Добавление названия файла в массив имён
     return names
