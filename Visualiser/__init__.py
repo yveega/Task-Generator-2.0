@@ -170,19 +170,18 @@ def decode_uis(string, manager):
 """
 
 
-# TODO: приближение --- желательно
-# TODO: количество задач и вариантов --- до следующего раза
-# TODO: выбор генератора --- потом
-# TODO: результат словарь
+# TODO: кнопки приближения --- потом
+# TODO: параметры отрисовки --- надо
 
 
 class Drawer:
-    def __init__(self, params='', description='Нет описания генератора :('):
+    def __init__(self, params='', description='Нет описания генератора :(', subjects=["Матеша", "Физика"]):
         self.description = description.replace('\n', '<br>')
+        self.manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'Resource/Styles/theme.json')
         # self.UIs = decode_uis(params, s)
         self.scr = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption('GRIT-Z')  # Generator of Randomized Instances of Tasks - Zero edition
-        self.reset(params)
+        self.reset(params, subjects=subjects)
         self.tm = time.monotonic()
         self.bg = pygame.image.load('Resource/Images/ground.jpg')
         self.flag = imload('flag.bmp')
@@ -203,11 +202,29 @@ class Drawer:
         self.pages_num_input.set_text('1')
         self.gen_tab = pygame_gui.elements.ui_button.UIButton(manager=self.manager,
                                                               relative_rect=pygame.Rect((20, 550), (100, 30)),
-                                                              text='генераторы')
+                                                              text='отрисовка')
         self.params_tab = pygame_gui.elements.ui_button.UIButton(manager=self.manager,
                                                                  relative_rect=pygame.Rect((118, 550), (100, 30)),
                                                                  text='параметры')
+        self.version_tab = pygame_gui.elements.ui_button.UIButton(manager=self.manager,
+                                                                 relative_rect=pygame.Rect((216, 550), (100, 30)),
+                                                                 text='выбор задач')
         self.params_tab.disable()
+
+        self.generate_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((20, 490), (550, 50)),
+            text='Сгенерировать',
+            manager=self.manager)
+        self.generate_button.hide()
+        self.generate_button.disable()
+
+        self.redraw_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((20, 430), (550, 50)),
+            text='Перерисовать',
+            manager=self.manager)
+        self.redraw_button.hide()
+        self.redraw_button.disable()
+        self.can_redraw = False
 
     def pages_input_upd(self, page):
         try:
@@ -229,16 +246,16 @@ class Drawer:
                                                        (int(self.page_scale * 540 / 2 ** 0.5),
                                                         int(self.page_scale * 540)))
             self.scr.blit(page_scaled, (590, 20), (*self.page_topleft, int(540 / 2 ** 0.5), 540))
-            self.pages_num_input.visible = 1
-            self.forward_button.visible = 1
-            self.backward_button.visible = 1
+            self.pages_num_input.show()
+            self.forward_button.show()
+            self.backward_button.show()
             self.total_pages_label = pygame.font.SysFont('Calibri', 18)
             self.total_pages_label = self.total_pages_label.render(f' / {len(pages_images)}', True, (0, 0, 0))
             self.scr.blit(self.total_pages_label, (800, 570))
         else:
-            self.pages_num_input.visible = 0
-            self.forward_button.visible = 0
-            self.backward_button.visible = 0
+            self.pages_num_input.hide()
+            self.forward_button.hide()
+            self.backward_button.hide()
             self.scr.blit(self.no_pages_label, (670, 300))
 
     def page_topleft_upd(self, rel):
@@ -249,8 +266,9 @@ class Drawer:
     def page_scale_upd(self, val):
         self.page_scale = max(1, min(8, self.page_scale + val))
 
-    def reset(self, params):  # Пересоздаёт меню с другими настройками (ввод)
-        self.manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'Resource/Styles/theme.json')
+    def reset(self, params, description="", subjects=["Матеша", "Физика", "Русский"]):  # Пересоздаёт меню с другими настройками (ввод)
+        if description != "":
+            self.description = description
         self.desc_textbox = pygame_gui.elements.ui_text_box.UITextBox(relative_rect=pygame.Rect((20, 20), (550, 200)),
                                                                       html_text=self.description, manager=self.manager)
         self.uis = decode_uis(params, self.manager)
@@ -265,25 +283,86 @@ class Drawer:
             self.guis.append(ui.get_gui([20, curent_position, 250 + 300, height]))
             self.rects.append([20, curent_position, 250 + 300, height])
             curent_position += height + 3
-
-        self.generate_button = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((20, curent_position + 37), (550, 50)),
-            text='Generate!',
-            manager=self.manager)
         self.versions = UIElement('numb', 'количество вариантов:', self.manager, default='1',
                                   ID='кол-во вариантов:')
         self.versions = self.versions.get_gui([20, 320, 550, 25])
-        self.versions[0].disable()
-        self.versions[0].visible = 0
-        self.versions[1].disable()
-        self.versions[1].visible = 0
+
         self.tasks = UIElement('numb', 'количество задач:', self.manager, default='1',
                                ID='кол-во вариантов:')
         self.tasks = self.tasks.get_gui([20, 348, 550, 25])
-        self.tasks[0].disable()
-        self.tasks[0].visible = 0
-        self.tasks[1].disable()
-        self.tasks[1].visible = 0
+
+        self.font = UIElement('list', 'Шрифт:', self.manager, default='Arial',
+                              ID='шрифт:', options=sorted(['Arial', 'Calibri', 'Times New Roman', 'Courier New']))
+        self.font = self.font.get_gui([20, 280, 550, 25])
+
+        self.fontsize = UIElement('numb', 'размер шрифта:', self.manager, default='15',
+                                  ID='размер шрифта:')
+        self.fontsize = self.fontsize.get_gui([20, 252, 550, 25])
+
+        self.subject = UIElement('list', 'предмет:', self.manager, default=subjects[0],
+                                  ID='предмет:', options=subjects)
+        self.subject = self.subject.get_gui([20, 240, 550, 25])
+        self.versions_guis = [self.subject]
+        self.set_visible(self.versions_guis, False)
+        self.gen_guis = [self.font, self.versions, self.tasks, self.fontsize]
+        self.set_visible(self.gen_guis, False)
+
+    def update_params(self, params, description="Нет описания генератора"):  # Обновляет параметры генерации. Вызывается из main.py
+        self.desc_textbox = pygame_gui.elements.ui_text_box.UITextBox(relative_rect=pygame.Rect((20, 20), (550, 200)),
+                                                                      html_text=description, manager=self.manager)
+        self.uis = decode_uis(params, self.manager)
+        self.guis = []
+        curent_position = 240
+        self.rects = []
+        for i, ui in enumerate(self.uis):
+            if ui.typ == 'radi':
+                height = 22 * (len(ui.options))
+            else:
+                height = 26
+            self.guis.append(ui.get_gui([20, curent_position, 250 + 300, height]))
+            self.rects.append([20, curent_position, 250 + 300, height])
+            curent_position += height + 3
+        self.set_visible(self.guis, False)
+        self.desc_textbox.disable()
+        self.desc_textbox.hide()
+
+    def update_versions_panel(self, themes=None, generators=None):  # Обновляет выбор генератора. Вызывается из main.py
+        if themes is not None and generators is None:
+                if len(self.versions_guis) > 1:
+                    if len(self.versions_guis) > 2:
+                        self.set_visible(self.versions_guis[2], False)
+                        del self.versions_guis[2]
+                    self.set_visible(self.versions_guis[1], False)
+                    del self.versions_guis[1]
+                theme = UIElement('list', 'тема:', self.manager, default=themes[0],
+                                  ID='тема:', options=themes)
+                theme = theme.get_gui([20, 280, 550, 25])
+                self.versions_guis.append(theme)
+        if generators is not None:
+            if len(self.versions_guis) > 2:
+                self.set_visible(self.versions_guis[2], False)
+                del self.versions_guis[2]
+            generator = UIElement('list', 'генератор:', self.manager, default=generators[0],
+                                 ID='генератор:', options=generators)
+            generator = generator.get_gui([20, 320, 550, 25])
+            self.versions_guis.append(generator)
+        self.set_visible(self.versions_guis, True)
+
+    def set_visible(self, ui_object, visible=True):  # этот метод упростит показ и скрытие объектов UI
+        # Можно передавать и объект и список объектов
+        if type(ui_object) == list:
+            for obj in ui_object:
+                self.set_visible(obj, visible)
+        elif visible:
+            ui_object[0].enable()
+            ui_object[0].show()
+            ui_object[1].enable()
+            ui_object[1].show()
+        else:
+            ui_object[0].disable()
+            ui_object[0].hide()
+            ui_object[1].disable()
+            ui_object[1].hide()
 
     def get_values(self):  # Возвращает массив значений элементов интерфейса
         answ = []
@@ -312,7 +391,7 @@ class Drawer:
             tasks = int(self.tasks[0].get_text())
         except ValueError:
             tasks = 1
-        return {'params': params, 'versions': versions, 'tasks': tasks}  # version - вариант
+        return {'gen_params': params, 'versions': versions, 'tasks': tasks}  # version - вариант
 
     def operate_events(self):  # Обрабатывает события пользователя.
         for event in pygame.event.get():
@@ -346,6 +425,8 @@ class Drawer:
             if event.type == pygame.USEREVENT:
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.generate_button:
+                        self.can_redraw = True
+                        self.redraw_button.enable()  # TODO: надо ли ее активировать тут, или в страницах?
                         self.pages_num_input.set_text('1')
                         self.current_page = 0
                         self.scrolls = 0
@@ -353,51 +434,68 @@ class Drawer:
                             os.remove(os.getcwd() + '/pages.txt')
                         except FileNotFoundError:
                             pass
-                        return self.get_values()
+                        res = self.get_values()
+                        res['generate'] = True
+                        res['font'] = self.font[0].selected_option
+                        res['fontsize'] = int(self.fontsize[0].text)
+                        return res
+                    if event.ui_element == self.redraw_button:
+                        self.pages_num_input.set_text('1')
+                        self.current_page = 0
+                        self.scrolls = 0
+                        try:
+                            os.remove(os.getcwd() + '/pages.txt')
+                        except FileNotFoundError:
+                            pass
+                        res = {'generate': False}
+                        res['font'] = self.font[0].selected_option
+                        res['fontsize'] = int(self.fontsize[0].text)
+                        res['versions'] = int(self.versions[0].text)
+                        return res
                     if event.ui_element == self.backward_button:
                         self.pages_input_upd(self.current_page + 1 - 1)
                     if event.ui_element == self.forward_button:
                         self.pages_input_upd(self.current_page + 1 + 1)
                     if event.ui_element == self.gen_tab:
-                        self.generate_button.disable()
-                        self.generate_button.visible = 0
+                        self.generate_button.enable()
+                        self.generate_button.show()
+                        if self.can_redraw:
+                            self.redraw_button.enable()
+                        self.redraw_button.show()
                         self.desc_textbox.disable()
-                        self.desc_textbox.visible = 0
-                        for i in self.guis:
-                            i[0].disable()
-                            i[0].visible = 0
-                            i[1].disable()
-                            i[1].visible = 0
-                        self.versions[0].enable()
-                        self.versions[0].visible = 1
-                        self.versions[1].enable()
-                        self.versions[1].visible = 1
-                        self.tasks[0].enable()
-                        self.tasks[0].visible = 1
-                        self.tasks[1].enable()
-                        self.tasks[1].visible = 1
+                        self.desc_textbox.hide()
+                        self.set_visible(self.guis, False)
+                        self.set_visible(self.gen_guis, True)
+                        self.set_visible(self.versions_guis, False)
                         self.gen_tab.disable()
                         self.params_tab.enable()
+                        self.version_tab.enable()
                     if event.ui_element == self.params_tab:
-                        self.generate_button.enable()
-                        self.generate_button.visible = 1
+                        self.generate_button.disable()
+                        self.generate_button.hide()
+                        self.redraw_button.disable()
+                        self.redraw_button.hide()
                         self.desc_textbox.enable()
-                        self.desc_textbox.visible = 1
-                        for i in self.guis:
-                            i[0].enable()
-                            i[0].visible = 1
-                            i[1].enable()
-                            i[1].visible = 1
-                        self.versions[0].disable()
-                        self.versions[0].visible = 0
-                        self.versions[1].disable()
-                        self.versions[1].visible = 0
-                        self.tasks[0].disable()
-                        self.tasks[0].visible = 0
-                        self.tasks[1].disable()
-                        self.tasks[1].visible = 0
+                        self.desc_textbox.show()
+                        self.set_visible(self.guis, True)
+                        self.set_visible(self.gen_guis, False)
+                        self.set_visible(self.versions_guis, False)
                         self.params_tab.disable()
                         self.gen_tab.enable()
+                        self.version_tab.enable()
+                    if event.ui_element == self.version_tab:
+                        self.generate_button.disable()
+                        self.generate_button.hide()
+                        self.redraw_button.disable()
+                        self.redraw_button.hide()
+                        self.desc_textbox.disable()
+                        self.desc_textbox.hide()
+                        self.set_visible(self.guis, False)
+                        self.set_visible(self.gen_guis, False)
+                        self.set_visible(self.versions_guis, True)
+                        self.params_tab.enable()
+                        self.gen_tab.enable()
+                        self.version_tab.disable()
                 if event.user_type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
                     if event.ui_element == self.pages_num_input:
                         self.pages_input_upd(self.pages_num_input.get_text())
@@ -406,6 +504,17 @@ class Drawer:
                         i = my_index(self.guis, event.ui_element)
                         if self.uis[i].typ == 'numb':
                             self.guis[i][0].set_text(string_to_number(self.guis[i][0].get_text()))
+                if event.user_type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+                    # print("Drop down menu changed! Select:", event.text)
+                    if event.ui_element == self.subject[0]:
+                        # print("Subject selected:", event.text)
+                        return {"subject": event.text}
+                    elif event.ui_element == self.versions_guis[1][0]:
+                        # print("Theme selected:", event.text)
+                        return {"theme": event.text}
+                    elif event.ui_element == self.versions_guis[2][0]:
+                        # print("Generator selected:", event.text)
+                        return {"generator": event.text}
             self.manager.process_events(event)
 
     def tick(self):  # Функция для обновления. Должна вызываться каждый проход основного цикла программы.
@@ -439,9 +548,9 @@ class Drawer:
 """
 
 
-def get_interface_input(params='', description='Нет описания генератора :('):
-    log = open('Logs/Interface_log.txt', 'w')
-    print('params -', params, '\ndescription -', description, '\n', file=log)
+def get_interface_input(params='', description='Нет описания генератора :('):  # fixme: это больше не будет работать
+    log = open('Logs/Interface_log.txt', 'w')  # так как нам надо чтобы интерфейс
+    print('params -', params, '\ndescription -', description, '\n', file=log)  # оставался
     log.close()
     drw = Drawer(params, description=description)
     kg = True  # Условие основного цикла программы

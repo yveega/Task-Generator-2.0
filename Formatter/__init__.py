@@ -8,7 +8,8 @@ def reformat(tasks, answers, **kwargs):
     # flip_answers = True
     # blank_pages = False
     # k_vars_on_page = 1
-    res = "{font_size = " + str(kwargs.get("font_size", 20)) + "}\n"
+    res = "{font_size = " + str(kwargs.get("font_size", 20)) + "}{font_name = '" + str(kwargs.get("font", 'Calibri')) + "'}\n"
+    # {font_name = '" + str(kwargs.get("font", 'Calibri')) + "'
     k_in_ver = len(tasks) // kwargs.get("k_versions", 1)
     num_task = 1
     for i, task in enumerate(tasks):
@@ -18,7 +19,8 @@ def reformat(tasks, answers, **kwargs):
         res += "{math}" + task + "{math}\n"
         if kwargs.get("ans_after_each", False):
             if kwargs.get("flip_answers", True):
-                res += "{flipped=True}{math}c(t(Ответ: ))(" + answers[i] + "){math}\n{flipped=False}"
+                res += "{binding='right'}{font_size = 20}{flipped=True}{math}c(t(Ответ: ))(" + answers[i] + "){math}\n{flipped=False}{font_size=" + \
+                       str(kwargs.get("font_size", 20)) + "}{binding='left'}"
             else:
                 res += "{math}c(t(Ответ: ))(" + answers[i] + "){math}\n"
         if (i + 1) % k_in_ver == 0:
